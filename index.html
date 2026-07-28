@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MrNetflix - Control de Clientes & Caja Pro</title>
+    <meta name="theme-color" content="#0d0d0d">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="MrNetflix">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="https://placehold.co/192x192/0d0d0d/e50914?text=DON+STREAMING">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body { user-select: none; background-color: #0d0d0d; font-family: system-ui, -apple-system, sans-serif; color: #ffffff; overflow-x: hidden; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0d0d0d; }
+        ::-webkit-scrollbar-thumb { background: #222222; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #e50914; }
+        #pwa-splash { position: fixed; inset: 0; background-color: #0d0d0d; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s ease, visibility 0.5s ease; }
+        #pwa-splash.hidden-splash { opacity: 0; visibility: hidden; pointer-events: none; }
+        .neon-box { box-shadow: 0 0 20px rgba(229, 9, 20, 0.4), inset 0 0 15px rgba(255, 215, 0, 0.2); }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div id="pwa-splash">
+        <div class="flex-1 flex flex-col items-center justify-center space-y-4">
+            <div class="w-32 h-32 bg-gradient-to-br from-neutral-900 via-black to-red-950 rounded-2xl border-2 border-yellow-500/80 neon-box flex flex-col items-center justify-center p-3 text-center relative overflow-hidden animate-pulse">
+                <span class="text-[10px] text-yellow-400 font-extrabold tracking-widest uppercase mb-1">PRO</span>
+                <div class="text-lg font-black text-white tracking-tighter leading-tight">DON<br/><span class="text-blue-500">STREAMING</span></div>
+            </div>
+        </div>
+        <div class="pb-12 text-center">
+            <h2 class="text-lg font-bold text-neutral-100">MrNetflix Control de Clientes</h2>
+            <p class="text-xs text-neutral-500 font-mono">TiendaOnlineCaldas v2.0</p>
+        </div>
+    </div>
+    <div id="root"></div>
+    <script type="text/babel">
+        // React App mounted here
+        const App = () => {
+            return (
+                <div className="p-8 text-center">
+                    <h1 className="text-2xl font-bold text-red-500">MrNetflix App Lista para Netlify</h1>
+                    <p className="text-neutral-400 text-sm mt-2">Abre el archivo descargado para gestionar tus clientes.</p>
+                </div>
+            );
+        };
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>
