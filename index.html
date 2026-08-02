@@ -1368,6 +1368,47 @@
   <div class="client-list" id="leal-lista"></div>
 </div>
 
+<!-- ==================== EDITAR TRANSACCIÓN ==================== -->
+<div class="alerta-overlay" id="tx-edit-overlay" onclick="if(event.target===this)cerrarEdicionTransaccion()">
+  <div class="alerta-panel" style="max-width:400px">
+    <div class="alerta-header">
+      <div class="alerta-header-icon">✏️</div>
+      <div class="alerta-header-text">
+        <h2>Editar movimiento</h2>
+        <p>Corrige el registro si hay un error o duplicado</p>
+      </div>
+    </div>
+    <div class="alerta-body" style="padding:16px">
+      <div class="form-group">
+        <label class="form-label">Cliente</label>
+        <input class="form-input" type="text" id="tx-edit-cliente">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Producto</label>
+        <input class="form-input" type="text" id="tx-edit-producto">
+      </div>
+      <div class="row2">
+        <div class="form-group">
+          <label class="form-label">Costo</label>
+          <input class="form-input" type="number" id="tx-edit-costo">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Precio (ingreso)</label>
+          <input class="form-input" type="number" id="tx-edit-precio">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Fecha</label>
+        <input class="form-input" type="date" id="tx-edit-fecha">
+      </div>
+    </div>
+    <div class="alerta-footer">
+      <button class="alerta-btn-cerrar" onclick="cerrarEdicionTransaccion()">Cancelar</button>
+      <button class="alerta-btn-ver" onclick="guardarEdicionTransaccion()">💾 Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
 <!-- ==================== ALERTA FLOTANTE ==================== -->
 <div class="alerta-overlay" id="alerta-overlay" onclick="cerrarAlertaOverlay(event)">
   <div class="alerta-panel">
@@ -2332,27 +2373,43 @@ function renderPrecios() {
     el.innerHTML = '<div class="empty-state"><div class="icon">📦</div><p>No hay productos. Agrega el primero arriba.</p></div>';
     return;
   }
-  el.innerHTML = productos.map(p => `
-    <div class="price-card ${p.activo ? '' : 'inactivo'}">
+  el.innerHTML = productos.map(p => {
+    const faltaCosto  = !p.costo;
+    const faltaPrecio = !p.cliente;
+    const aviso = (faltaCosto || faltaPrecio)
+      ? `<div style="font-size:10.5px;color:var(--amarillo,#f5a623);font-weight:700;margin-top:2px">⚠️ ${faltaCosto && faltaPrecio ? 'Sin costo ni precio' : faltaCosto ? 'Sin costo' : 'Sin precio'} — la ganancia puede salir mal</div>`
+      : '';
+    return `
+    <div class="price-card ${p.activo ? '' : 'inactivo'}" style="${(faltaCosto||faltaPrecio) ? 'border-color:rgba(245,166,35,.4)' : ''}">
       <div>
         <div class="price-name">${p.nombre} ${p.activo ? '' : '<span style="color:var(--texto-suave);font-size:11px">(inactivo)</span>'}</div>
         <div style="font-size:11px;color:var(--texto-suave);margin-top:2px">Costo: ${fmtMoney(p.costo)} · Venta: ${fmtMoney(p.cliente)} · Ganancia: ${fmtMoney(p.cliente - p.costo)}</div>
+        ${aviso}
       </div>
       <div class="price-actions">
         <button class="icon-btn" onclick="editarProducto(${p.id})" title="Editar">✏️</button>
         <button class="icon-btn warn" onclick="toggleProducto(${p.id})" title="${p.activo ? 'Desactivar' : 'Activar'}">${p.activo ? '⏸️' : '▶️'}</button>
         <button class="icon-btn danger" onclick="eliminarProducto(${p.id})" title="Eliminar">🗑️</button>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
   populateProductSelects();
 }
 
 function guardarProducto() {
   const nombre = document.getElementById('prod-nombre').value.trim();
-  const costo = parseFloat(document.getElementById('prod-costo').value) || 0;
-  const cliente = parseFloat(document.getElementById('prod-cliente').value) || 0;
+  const costoInput   = document.getElementById('prod-costo').value;
+  const clienteInput = document.getElementById('prod-cliente').value;
+  const costo = parseFloat(costoInput) || 0;
+  const cliente = parseFloat(clienteInput) || 0;
   if (!nombre) { showToast('⚠️ Ingresa el nombre del producto'); return; }
+
+  if (!costoInput.trim() || !clienteInput.trim() || costo === 0 || cliente === 0) {
+    const cual = (!costoInput.trim() || costo === 0) && (!clienteInput.trim() || cliente === 0)
+      ? 'el costo y el precio de venta'
+      : (!costoInput.trim() || costo === 0) ? 'el costo' : 'el precio de venta';
+    if (!confirm(`Vas a guardar "${nombre}" con ${cual} en $0 — la ganancia va a salir mal en Caja. ¿Guardar así de todos modos?`)) return;
+  }
 
   if (editandoProductoId) {
     const p = productos.find(x => x.id === editandoProductoId);
@@ -2723,6 +2780,7 @@ function renderCaja() {
         <div>Egreso: ${fmtMoney(t.costo)}</div>
         <div class="gan">+${fmtMoney(t.ganancia)}</div>
       </div>
+      <button class="tx-del" style="background:rgba(106,176,255,.15);color:#6ab0ff;margin-right:4px" onclick="editarTransaccion(${t.id})" title="Editar movimiento">✏️</button>
       <button class="tx-del" onclick="eliminarTransaccion(${t.id})" title="Eliminar movimiento">✕</button>
     </div>
   `).join('');
@@ -2739,6 +2797,56 @@ function eliminarTransaccion(id) {
   guardarTransaccionesStorage();
   renderCaja();
   showToast('🗑️ Movimiento eliminado');
+}
+
+let txEditandoId = null;
+
+function editarTransaccion(id) {
+  const t = transacciones.find(x => x.id === id);
+  if (!t) return;
+  txEditandoId = id;
+  document.getElementById('tx-edit-cliente').value  = t.clienteNombre || '';
+  document.getElementById('tx-edit-producto').value = t.productoNombre || '';
+  document.getElementById('tx-edit-costo').value    = t.costo || 0;
+  document.getElementById('tx-edit-precio').value   = t.precio || 0;
+  document.getElementById('tx-edit-fecha').value    = (t.fecha || '').split('T')[0] || new Date().toISOString().split('T')[0];
+  document.getElementById('tx-edit-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function cerrarEdicionTransaccion() {
+  txEditandoId = null;
+  document.getElementById('tx-edit-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function guardarEdicionTransaccion() {
+  if (txEditandoId === null) return;
+  const t = transacciones.find(x => x.id === txEditandoId);
+  if (!t) { cerrarEdicionTransaccion(); return; }
+
+  const cliente  = document.getElementById('tx-edit-cliente').value.trim();
+  const producto = document.getElementById('tx-edit-producto').value.trim();
+  const costo    = parseFloat(document.getElementById('tx-edit-costo').value) || 0;
+  const precio   = parseFloat(document.getElementById('tx-edit-precio').value) || 0;
+  const fecha    = document.getElementById('tx-edit-fecha').value;
+
+  if (!producto) { showToast('⚠️ El producto no puede estar vacío'); return; }
+
+  t.clienteNombre  = cliente;
+  t.productoNombre = producto;
+  t.costo    = costo;
+  t.precio   = precio;
+  t.ganancia = precio - costo;
+  if (fecha) {
+    const horaOriginal = (t.fecha || '').split('T')[1] || '00:00:00.000Z';
+    t.fecha = fecha + 'T' + horaOriginal;
+  }
+
+  guardarTransaccionesStorage();
+  cerrarEdicionTransaccion();
+  renderCaja();
+  showToast('✅ Movimiento actualizado');
 }
 
 // ============================================================
@@ -3332,21 +3440,31 @@ function renderAdjuntosPrecargados() {
   const catInfo = CATEGORIAS_MEDIA.find(c => c.key === cat) || { emoji:'📱', label: cat };
   cont.innerHTML = '<span style="font-size:12px;color:var(--texto-suave)">Buscando multimedia…</span>';
 
-  const tipos = [
-    { tipo:'imagen', emoji:'🖼️', label:'Imagen' },
-    { tipo:'audio',  emoji:'🎵', label:'Audio'  },
-    { tipo:'video',  emoji:'🎥', label:'Video'  },
+  const tiposSlot = [
+    { tipo:'documento', emoji:'📄', label:'Documento' },
+    { tipo:'audio',      emoji:'🎵', label:'Audio'  },
+    { tipo:'video',      emoji:'🎥', label:'Video'  },
   ];
 
-  Promise.all(tipos.map(t => dbObtener(cat, t.tipo))).then(resultados => {
-    const disponibles = tipos.filter((_, i) => resultados[i]);
-    if (!disponibles.length) {
-      cont.innerHTML = `<div class="adjuntos-sin">Sin multimedia para ${catInfo.emoji} <b>${catInfo.label}</b>.<br>Súbela en <b>📎 Multimedia</b> y se adjuntará sola.</div>`;
+  Promise.all([
+    dbObtenerGaleria(cat),
+    Promise.all(tiposSlot.map(t => dbObtener(cat, t.tipo)))
+  ]).then(([galeria, resultados]) => {
+    const disponibles = tiposSlot.filter((_, i) => resultados[i]);
+    const hayImagen = galeria && galeria.length > 0;
+
+    if (!hayImagen && !disponibles.length) {
+      cont.innerHTML = `<div class="adjuntos-sin">Sin multimedia para ${catInfo.emoji} <b>${catInfo.label}</b>.<br>Súbela en <b>📎 Media</b> y se adjuntará sola.</div>`;
       return;
     }
+
+    const tags = [];
+    if (hayImagen) tags.push(`<span class="adjunto-tag">🖼️ Imagen${galeria.length>1?' (1 de '+galeria.length+')':''}</span>`);
+    disponibles.forEach(t => tags.push(`<span class="adjunto-tag">${t.emoji} ${t.label}</span>`));
+
     cont.innerHTML =
-      `<div class="adjuntos-tags">${disponibles.map(t => `<span class="adjunto-tag">${t.emoji} ${t.label}</span>`).join('')}</div>` +
-      `<div style="font-size:11px;color:var(--texto-suave);margin-top:4px">✅ Se descargarán automáticamente al enviar</div>`;
+      `<div class="adjuntos-tags">${tags.join('')}</div>` +
+      `<div style="font-size:11px;color:var(--texto-suave);margin-top:4px">📋 Se copiará para pegar en el chat al enviar (WhatsApp no permite adjuntar automático a un contacto exacto — no se descarga nada solo)</div>`;
   }).catch(() => {
     cont.innerHTML = '<div class="adjuntos-sin">No se pudo leer la base de datos.</div>';
   });
